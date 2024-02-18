@@ -1,0 +1,57 @@
+name: Deploy FastAPI to Uberspace
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment: global
+    steps:
+      - name: SSH Remote Commands
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.UBERSPACE_HOST }}
+          username: ${{ secrets.UBERSPACE_USER }}
+          key: ${{ secrets.DEPLOY_KEY_PRIVATE }}
+          script: |
+            echo "Update project"
+            cd /home/${{ secrets.UBERSPACE_USER }}/${{ vars.UBERSPACE_PATH }}
+            git pull --rebase
+  build:
+    runs-on: ubuntu-latest
+    needs: update
+    environment: global
+    steps:
+      - name: SSH Remote Commands
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.UBERSPACE_HOST }}
+          username: ${{ secrets.UBERSPACE_USER }}
+          key: ${{ secrets.DEPLOY_KEY_PRIVATE }}
+          script: |
+            echo "Update dependencies"
+            cd /home/${{ secrets.UBERSPACE_USER }}/${{ vars.UBERSPACE_PATH }}
+            source venv/bin/activate
+            pip install -r requirements.txt
+            deactivate
+  restart:
+    runs-on: ubuntu-latest
+    needs: build
+    environment: global
+    steps:
+      - name: SSH Remote Commands
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.UBERSPACE_HOST }}
+          username: ${{ secrets.UBERSPACE_USER }}
+          key: ${{ secrets.DEPLOY_KEY_PRIVATE }}
+          script: |
+            echo "Restart Service"
+            supervisorctl stop ${{ vars.UBERSPACE_SERVICE }}
+            supervisorctl start ${{ vars.UBERSPACE_SERVICE }}
