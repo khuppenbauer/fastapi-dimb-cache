@@ -1,5 +1,15 @@
 fastapi
 gunicorn
 httptools
+pymysql
+psycopg2-binary
+pydantic
+python-jose
+python-multipart
+pydantic_settings
+requests
+sqlalchemy
+typing_extensions
+uuid
 uvicorn
 uvloop
