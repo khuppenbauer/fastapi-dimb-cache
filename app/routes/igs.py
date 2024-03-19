@@ -1,5 +1,4 @@
 # app/routes/igs.py
-import json
 import requests
 import uuid
 from fastapi import APIRouter, Depends, Query, HTTPException, Response, status
@@ -13,13 +12,15 @@ from ..config import settings
 
 router = APIRouter()
 
+@router.get("/status")
+def read_status():
+  return {"status": "ok"}
+
 @router.get("/")
 def get_igs(simplified: str = Query("0.005"), db: Session = Depends(get_db)):
   igs = db.query(models.DimbIg).filter(models.DimbIg.simplified == simplified).all()
-  geometries = []
   features = []
   for row in igs:
-    geometries.append(row.geometry)
     feature = {
         "type": "Feature",
         "properties": row.meta,
@@ -27,19 +28,10 @@ def get_igs(simplified: str = Query("0.005"), db: Session = Depends(get_db)):
     }
     features.append(feature)
 
-  geometryCollection = {
-    "type": "GeometryCollection",
-    "geometries": geometries
-  }
-
   return {
     "type": "FeatureCollection",
     "features": features
   }
-
-@router.get("/status")
-def read_status():
-  return {"status": "ok"}
 
 @router.get("/{name}")
 def get_ig(name: str, simplified: str = Query("0.005"), db: Session = Depends(get_db)):
