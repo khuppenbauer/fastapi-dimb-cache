@@ -3,10 +3,10 @@ import requests
 import uuid
 from fastapi import APIRouter, Depends, Query, HTTPException, Response, status
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
+from ..utils import parseFeatureCollection
 from ..auth import authorize, signJWT
 from ..config import settings
 
@@ -17,7 +17,7 @@ def read_status():
   return {"status": "ok"}
 
 @router.get("/")
-def get_igs(simplified: str = Query("0.005"), db: Session = Depends(get_db)):
+def get_igs(simplified: str = Query("0.005"), includeProperties: bool = True, db: Session = Depends(get_db)):
   igs = db.query(models.DimbIg).filter(models.DimbIg.simplified == simplified).all()
   features = []
   for row in igs:
@@ -28,20 +28,34 @@ def get_igs(simplified: str = Query("0.005"), db: Session = Depends(get_db)):
     }
     features.append(feature)
 
+  if (includeProperties == True):
+    return parseFeatureCollection(features)
   return {
     "type": "FeatureCollection",
     "features": features
   }
 
 @router.get("/{name}")
-def get_ig(name: str, simplified: str = Query("0.005"), db: Session = Depends(get_db)):
+def get_ig(name: str, simplified: str = Query("0.005"), includeProperties: bool = True, db: Session = Depends(get_db)):
   ig = db.query(models.DimbIg).filter(models.DimbIg.name == name, models.DimbIg.simplified == simplified).scalar()
 
   if not ig:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Not found")
 
-  return ig
+  features = []
+  feature = {
+    "type": "Feature",
+    "properties": ig.meta,
+    "geometry": ig.geometry
+  }
+  features.append(feature)
 
+  if (includeProperties == True):
+    return parseFeatureCollection(features)
+  return {
+    "type": "FeatureCollection",
+    "features": features
+  }
 
 @router.post("/", dependencies=[Depends(authorize)])
 def update_ig(item: schemas.DimbIgInput, simplified: str = Query("0.005"), db: Session = Depends(get_db)):
