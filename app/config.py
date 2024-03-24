@@ -9,6 +9,7 @@ class Settings(BaseSettings):
   PASSWORD: str
   API: str
   CACHE_API: str
+  METADATA_API: str
 
   class Config:
     env_file = ".env"

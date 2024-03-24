@@ -9,5 +9,6 @@ class DimbIg(Base):
   id = Column(primary_key=True)
   name = Column(String(255), nullable=False)
   meta = Column(JSON)
+  postcodes = Column(JSON)
   geometry = Column(JSON)
   simplified = Column(Double)
